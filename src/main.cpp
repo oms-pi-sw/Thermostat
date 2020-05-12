@@ -28,63 +28,88 @@
 #include <Adafruit_SSD1306.h>
 #include <BME280.h>
 
-#define D_SDA PB_11
-#define D_SCL PB_10
+#define MAJOR                   0
+#define MINOR                   1
+#define REVISION                0
+
+#define SCREEN_WIDTH            128
+#define SCREEN_HEIGHT           64
+#define SAMPLES_NUM             100
+#define GRAPH_X                 (SCREEN_WIDTH - (SAMPLES_NUM + 1))
+#define GRAPH_Y                 16
+#define GRAPH_W                 (SAMPLES_NUM + 1)
+#define GRAPH_H                 47
+#define DATA_X                  10
+#define DATA_Y                  0
+
+#define D_SDA PB_9
+#define D_SCL PB_8
 I2C i2c(D_SDA, D_SCL);
 
 DigitalOut statusLed(PC_13);
 
+DigitalIn btn_plus(PA_0);
+DigitalIn btn_minus(PA_1);
+DigitalIn btn_menu(PA_6);
+DigitalIn btn_ok(PA_4);
+DigitalIn btn_up(PA_5);
+DigitalIn btn_down(PA_7);
+
+Ticker sample;
+
 Adafruit_SSD1306_I2c *gOled2 = NULL;
+BME280 *bme280 = NULL;
 
-void printTitle(const char*, Adafruit_SSD1306_I2c*, const bool);
+enum button {
+  BTN_PLUS, BTN_MINS, BTN_MENU, BTN_OK, BTN_UP, BTN_DN
+};
+uint8_t btn_click = 0x00;
+uint8_t btn_clicked = 0x00;
 
-int k = 0;
+float temperatures[100], humidities[100], pressures[100];
+volatile uint8_t samples = 0;
 
-int main()
-{
-  wait(1);
-  float temp, hum, pres;
-  BME280 *bme280 = 0;
-  bme280 = new BME280(PB_9, PB_8, 0x76);
+// Temperature, humidity, pressure, altitude
+float temperature = 0., humidity = 0.;
+float pressure = 0., altitude = 0.;
+float t_max = 0, t_min = 0, h_max = 0, h_min = 0, p_max = 0, p_min = 0;
 
-  gOled2 = new Adafruit_SSD1306_I2c(i2c, PB_5, (0x3C << 1), 64, 128);
-  for (uint8_t i = 0; i < 10; i++)
-  {
-    gOled2->begin(SSD1306_SWITCHCAPVCC);
-    wait(0.01);
-  }
+// Page
+uint8_t page = 0;
 
-  printTitle("TERMOSTATO", gOled2, false);
-  
-  gOled2->printf("v0.1");
-  gOled2->display();
-  wait(1);
+volatile bool first = true;
 
-  bme280->reset();
-  wait(2);
-  bme280->init();
-  wait(1);
+volatile bool readyToSample = false;
 
-  while (1)
-  {
-    statusLed = !statusLed;
-    bme280->trigger();
-    while (bme280->busy())
-    {
-      wait(0.1);
+float __max(const float x, const float y){
+  return (x > y ? x : y);
+}
+
+void tick() {
+  readyToSample = true;
+}
+
+void doSample() {
+  if(samples < SAMPLES_NUM) {
+    if(!first && !std::isnan(temperature) && !std::isinf(temperature) && !std::isnan(humidity) && !std::isinf(humidity) && !std::isnan(pressure) && !std::isinf(pressure)) {
+      temperatures[samples] = temperature;
+      humidities[samples] = humidity;
+      pressures[samples] = pressure;
+      ++samples;
     }
-    temp = bme280->getTemperature();
-    hum = bme280->getHumidity();
-    pres = bme280->getPressure();
-    gOled2->clearDisplay();
-    gOled2->setTextCursor(0, 0);
-    gOled2->printf("Temp: %.2f\n\rHumid: %.2f\n\rPress: %.2f\n\r", temp, hum, pres);
-    gOled2->display();
-    wait(1);
+  } else {
+    for(uint8_t i = 0; i < SAMPLES_NUM-1; i++) {
+      temperatures[i] = temperatures[i + 1];
+      humidities[i] = humidities[i + 1];
+      pressures[i] = pressures[i + 1];
+    }
+    temperatures[SAMPLES_NUM-1] = temperature;
+    humidities[SAMPLES_NUM-1] = humidity;
+    pressures[SAMPLES_NUM-1] = pressure;
   }
 }
 
-void printTitle(const char *s, Adafruit_SSD1306_I2c *display, const bool print) {
+void printTitle(const char *s, Adafruit_SSD1306_I2c *display, const bool newline, const bool print) {
   display->setTextCursor(0, 0);
   display->clearDisplay();
   display->setTextColor(BLACK, WHITE);
@@ -101,9 +126,280 @@ void printTitle(const char *s, Adafruit_SSD1306_I2c *display, const bool print) 
   if((h + h) < x) {
     display->printf(" ");
   }
-  display->printf("\n\r");
+  if(newline) {
+    display->printf("\n\r");
+  }
   display->setTextColor(WHITE, BLACK);
   if(print) {
     display->display();
+  }
+}
+
+void readInput() {
+  bool plus = btn_plus;
+  bool minus = btn_minus;
+  bool menu = btn_menu;
+  bool ok = btn_ok;
+  bool up = btn_up;
+  bool down = btn_down;
+
+  btn_clicked = btn_click;
+
+  btn_click = (uint8_t) 0x00;
+
+  btn_click |= ((plus & ((uint8_t) 0x01)) << BTN_PLUS);
+  btn_click |= ((minus & ((uint8_t) 0x01)) << BTN_MINS);
+  btn_click |= ((menu & ((uint8_t) 0x01)) << BTN_MENU);
+  btn_click |= ((ok & ((uint8_t) 0x01)) << BTN_OK);
+  btn_click |= ((up & ((uint8_t) 0x01)) << BTN_UP);
+  btn_click |= ((down & ((uint8_t) 0x01)) << BTN_DN);
+}
+
+void displayGraph(const uint8_t displayMode, const volatile float *sarray) {
+  uint8_t i_stamp = samples;
+
+  if (displayMode == 0)
+    printTitle("TEMPERATURA", gOled2, false, false);
+  else if (displayMode == 1)
+    printTitle("UMIDITA'", gOled2, false, false);
+  else if (displayMode == 2)
+    printTitle("PRESSIONE", gOled2, false, false);
+
+  gOled2->drawFastVLine(GRAPH_X, GRAPH_Y, GRAPH_H, WHITE);
+  gOled2->drawFastHLine(GRAPH_X, GRAPH_H + GRAPH_Y, GRAPH_W, WHITE);
+
+  //int mean = 0;
+  float mean = 0;
+  float _max = sarray[0];
+  float _min = sarray[0];
+
+  for (uint8_t i = 0; i < i_stamp; i++) {
+    if (_max < sarray[i]) {
+      _max = sarray[i];
+    }
+    if (_min > sarray[i]) {
+      _min = sarray[i];
+    }
+  }
+  //mean = (int) (mean / i_stamp);
+  mean = ((_max + _min) / 2);
+  float max_delta = __max((abs(mean - _max)), (abs(mean - _min)));
+
+  uint8_t x = 0;
+  x = (uint8_t) ((GRAPH_Y + (GRAPH_H / 2)) + (((GRAPH_H / 2) * (- _max + mean)) / max_delta));
+  gOled2->drawPixel(GRAPH_X - 1, x, WHITE);
+  gOled2->setTextCursor(0,  x);
+  gOled2->printf("%.1f", _max);
+  if (displayMode == 0)
+    gOled2->printf("%c", (char)247);
+  else if (displayMode == 1)
+    gOled2->printf("%%");
+
+  x = (uint8_t) ((GRAPH_Y + (GRAPH_H / 2)) + (((GRAPH_H / 2) * (- _min + mean)) / max_delta));
+  gOled2->drawPixel(GRAPH_X - 1, x, WHITE);
+  gOled2->setTextCursor(0, x - 6);
+  gOled2->printf("%.1f", _min);
+  if (displayMode == 0)
+    gOled2->printf("%c", (char)247);
+  else if (displayMode == 1)
+    gOled2->printf("%%");
+
+  gOled2->drawPixel(GRAPH_X - 1, GRAPH_Y + (GRAPH_H / 2), WHITE);
+  gOled2->setTextCursor(0,  GRAPH_Y + (GRAPH_H / 2) - 3);
+  gOled2->printf("%.1f", mean);
+  if (displayMode == 0)
+    gOled2->printf("%c", (char)247);
+  else if (displayMode == 1)
+    gOled2->printf("%%");
+
+  for (uint8_t i = 0; i < i_stamp; i++) {
+    float _t = sarray[i];
+    x = (uint8_t) ((GRAPH_Y + (GRAPH_H / 2)) + (((GRAPH_H / 2) * (- _t + mean)) / max_delta));
+    gOled2->drawPixel(GRAPH_X + i + 1, x, WHITE);
+  }
+
+  gOled2->display();
+}
+
+void readSensors(void) {
+  statusLed = !statusLed;
+  bme280->trigger();
+  while (bme280->busy())
+  {
+    wait_ms(10);
+  }
+  float _t1 = bme280->getTemperature();
+  float _h1 = bme280->getHumidity();
+  float _p1 = bme280->getPressure();
+
+  if (!isnan(_t1)) {
+    temperature = _t1;
+    if (first) {
+      t_min = temperature;
+      t_max = temperature;
+    } else {
+      if (temperature < t_min) {
+        t_min = temperature;
+      }
+      if (temperature > t_max) {
+        t_max = temperature;
+      }
+    }
+  }
+
+  if (!isnan(_h1)) {
+    humidity = _h1;
+    if (first) {
+      h_min = humidity;
+      h_max = humidity;
+    } else {
+      if (humidity < h_min) {
+        h_min = humidity;
+      }
+      if (humidity > h_max) {
+        h_max = humidity;
+      }
+    }
+  }
+
+  if (!isnan(_p1)) {
+    pressure = _p1;
+    if (first) {
+      p_min = pressure;
+      p_max = pressure;
+    } else {
+      if (pressure < p_min) {
+        p_min = pressure;
+      }
+      if (pressure > p_max) {
+        p_max = pressure;
+      }
+    }
+  }
+}
+
+void page0() {
+  printTitle("MAIN", gOled2, true, false);
+  gOled2->printf("T  : %.1f %cC\n\n", temperature, (char)247);
+  gOled2->printf("HR : %.1f %%\n\n", humidity);
+  gOled2->printf("P  : %.1f hPa\n", pressure);
+  gOled2->printf("S  : %d", samples);
+  gOled2->display();
+}
+
+void page1() {
+  printTitle("Max / Min", gOled2, true, false);
+
+  gOled2->printf("T  max:  %.1f\n", t_max);
+  gOled2->printf("T  min:  %.1f\n", t_min);
+
+  gOled2->printf("HR max:  %.1f\n", h_max);
+  gOled2->printf("HR min:  %.1f\n", h_min);
+
+  gOled2->printf("P  max:  %.1f\n", p_max);
+  gOled2->printf("P  min:  %.1f\n", p_min);
+
+  gOled2->display();
+}
+
+void page2() {
+  displayGraph(0, temperatures);
+}
+
+void page3() {
+  displayGraph(1, humidities);
+}
+
+void page4() {
+  displayGraph(2, pressures);
+}
+
+void refreshDisplay() {
+  switch (page) {
+    case 0:
+      page0();
+      break;
+    case 1:
+      page1();
+      break;
+    case 2:
+      page2();
+      break;
+    case 3:
+      page3();
+      break;
+    case 4:
+      page4();
+      break;
+    default:
+      page = 0;
+      refreshDisplay();
+      break;
+  }
+}
+
+int main()
+{
+  first = true;
+  wait_ms(500);
+  i2c.frequency(100000);
+
+  for (uint8_t i = 0; i < SAMPLES_NUM; i++) {
+    temperatures[i] = 0.;
+    humidities[i] = 0.;
+    pressures[i] = 0.;
+  }
+
+  sample.attach(&tick, 2);
+
+  wait_ms(100);
+
+  gOled2 = new Adafruit_SSD1306_I2c(i2c, PB_5, (0x3C << 1), 64, 128);
+
+  bme280 = new BME280(&i2c, 0x76);
+
+  gOled2->begin(SSD1306_SWITCHCAPVCC);
+
+  //printTitle("TERMOSTATO", gOled2, true, true);
+  //gOled2->printf("V %d.%d.%d\n\r", MAJOR, MINOR, REVISION);
+  //gOled2->printf("Niccolo' Ferrari\n\r");
+  //gOled2->printf("OMEGASOFTWARE\n\r");
+  //gOled2->display();
+  //wait_ms(1000);
+
+  bme280->reset();
+  wait_ms(2000);
+  bme280->init();
+  wait_ms(1000);
+
+  while (1)
+  {
+    readSensors();
+
+    wait_ms(10);
+
+    for (uint8_t i = 0; i < 50; i++) {
+      readInput();
+      refreshDisplay();
+
+      if ((((btn_click >> BTN_DN) & ((uint8_t) 0x01)) == 1) && (((btn_clicked >> BTN_DN) & ((uint8_t) 0x01)) == 0)) {
+        if (page < (uint8_t) 4) {
+          ++page;
+        }
+      }
+      if ((((btn_click >> BTN_UP) & ((uint8_t) 0x01)) == 1) && (((btn_clicked >> BTN_UP) & ((uint8_t) 0x01)) == 0)) {
+        if (page > (uint8_t) 0) {
+          --page;
+        }
+      }
+      wait_ms(100);
+    }
+
+    first = false;
+
+    if(readyToSample) {
+      doSample();
+      readyToSample = false;
+    }
   }
 }
