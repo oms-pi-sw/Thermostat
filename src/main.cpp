@@ -24,6 +24,7 @@
  */
 
 #include <mbed.h>
+#include <math.h>
 #include <string.h>
 #include <Adafruit_SSD1306.h>
 #include <BME280.h>
@@ -56,6 +57,7 @@ DigitalIn btn_up(PA_5);
 DigitalIn btn_down(PA_7);
 
 Ticker sample;
+Timeout measure;
 
 Adafruit_SSD1306_I2c *gOled2 = NULL;
 BME280 *bme280 = NULL;
@@ -80,13 +82,18 @@ uint8_t page = 0;
 volatile bool first = true;
 
 volatile bool readyToSample = false;
+volatile bool readyToMeasure = false;
 
 float __max(const float x, const float y){
   return (x > y ? x : y);
 }
 
-void tick() {
+void tickSample() {
   readyToSample = true;
+}
+
+void tickMeasure() {
+  readyToMeasure = true;
 }
 
 void doSample() {
@@ -155,30 +162,34 @@ void readInput() {
   btn_click |= ((down & ((uint8_t) 0x01)) << BTN_DN);
 }
 
+float __round(const float x) {
+  return (float) roundf(x * 100.) / 100.;
+}
+
 void displayGraph(const uint8_t displayMode, const volatile float *sarray) {
   uint8_t i_stamp = samples;
 
   if (displayMode == 0)
-    printTitle("TEMPERATURA", gOled2, false, false);
+    printTitle("TEMPERATURA (C)", gOled2, false, false);
   else if (displayMode == 1)
-    printTitle("UMIDITA'", gOled2, false, false);
+    printTitle("UMIDITA' (%)", gOled2, false, false);
   else if (displayMode == 2)
-    printTitle("PRESSIONE", gOled2, false, false);
+    printTitle("PRESSIONE (hPa)", gOled2, false, false);
 
   gOled2->drawFastVLine(GRAPH_X, GRAPH_Y, GRAPH_H, WHITE);
   gOled2->drawFastHLine(GRAPH_X, GRAPH_H + GRAPH_Y, GRAPH_W, WHITE);
 
   //int mean = 0;
   float mean = 0;
-  float _max = sarray[0];
-  float _min = sarray[0];
+  float _max = __round(sarray[0]);
+  float _min = __round(sarray[0]);
 
   for (uint8_t i = 0; i < i_stamp; i++) {
     if (_max < sarray[i]) {
-      _max = sarray[i];
+      _max = __round(sarray[i]);
     }
     if (_min > sarray[i]) {
-      _min = sarray[i];
+      _min = __round(sarray[i]);
     }
   }
   //mean = (int) (mean / i_stamp);
@@ -186,34 +197,29 @@ void displayGraph(const uint8_t displayMode, const volatile float *sarray) {
   float max_delta = __max((abs(mean - _max)), (abs(mean - _min)));
 
   uint8_t x = 0;
-  x = (uint8_t) ((GRAPH_Y + (GRAPH_H / 2)) + (((GRAPH_H / 2) * (- _max + mean)) / max_delta));
+  if(max_delta != 0)
+    x = (uint8_t) ((GRAPH_Y + (GRAPH_H / 2)) + (((GRAPH_H / 2) * (- _max + mean)) / max_delta));
+  else
+    x = GRAPH_Y + (GRAPH_H / 2);
+
   gOled2->drawPixel(GRAPH_X - 1, x, WHITE);
   gOled2->setTextCursor(0,  x);
   gOled2->printf("%.1f", _max);
-  if (displayMode == 0)
-    gOled2->printf("%c", (char)247);
-  else if (displayMode == 1)
-    gOled2->printf("%%");
 
-  x = (uint8_t) ((GRAPH_Y + (GRAPH_H / 2)) + (((GRAPH_H / 2) * (- _min + mean)) / max_delta));
+  if(max_delta != 0)
+    x = (uint8_t) ((GRAPH_Y + (GRAPH_H / 2)) + (((GRAPH_H / 2) * (- _min + mean)) / max_delta));
+  else
+    x = GRAPH_Y + (GRAPH_H / 2);
   gOled2->drawPixel(GRAPH_X - 1, x, WHITE);
   gOled2->setTextCursor(0, x - 6);
   gOled2->printf("%.1f", _min);
-  if (displayMode == 0)
-    gOled2->printf("%c", (char)247);
-  else if (displayMode == 1)
-    gOled2->printf("%%");
 
   gOled2->drawPixel(GRAPH_X - 1, GRAPH_Y + (GRAPH_H / 2), WHITE);
   gOled2->setTextCursor(0,  GRAPH_Y + (GRAPH_H / 2) - 3);
   gOled2->printf("%.1f", mean);
-  if (displayMode == 0)
-    gOled2->printf("%c", (char)247);
-  else if (displayMode == 1)
-    gOled2->printf("%%");
 
   for (uint8_t i = 0; i < i_stamp; i++) {
-    float _t = sarray[i];
+    float _t = __round(sarray[i]);
     x = (uint8_t) ((GRAPH_Y + (GRAPH_H / 2)) + (((GRAPH_H / 2) * (- _t + mean)) / max_delta));
     gOled2->drawPixel(GRAPH_X + i + 1, x, WHITE);
   }
@@ -283,7 +289,6 @@ void page0() {
   gOled2->printf("T  : %.1f %cC\n\n", temperature, (char)247);
   gOled2->printf("HR : %.1f %%\n\n", humidity);
   gOled2->printf("P  : %.1f hPa\n", pressure);
-  gOled2->printf("S  : %d", samples);
   gOled2->display();
 }
 
@@ -314,6 +319,12 @@ void page4() {
   displayGraph(2, pressures);
 }
 
+void page5() {
+  printTitle("SAMPLES", gOled2, true, false);
+  gOled2->printf("Samples # %d", samples);
+  gOled2->display();
+}
+
 void refreshDisplay() {
   switch (page) {
     case 0:
@@ -331,10 +342,36 @@ void refreshDisplay() {
     case 4:
       page4();
       break;
+    case 5:
+      page5();
+      break;
     default:
       page = 0;
       refreshDisplay();
       break;
+  }
+}
+
+void decodeInput() {
+  readInput();
+
+  if ((((btn_click >> BTN_DN) & ((uint8_t) 0x01)) == 1) && (((btn_clicked >> BTN_DN) & ((uint8_t) 0x01)) == 0)) {
+    if (page < (uint8_t) 5) {
+      ++page;
+    }
+  }
+  if ((((btn_click >> BTN_UP) & ((uint8_t) 0x01)) == 1) && (((btn_clicked >> BTN_UP) & ((uint8_t) 0x01)) == 0)) {
+    if (page > (uint8_t) 0) {
+      --page;
+    }
+  }
+}
+
+void waitInput(const uint8_t cycles, const uint16_t ms, const bool refresh){
+  for (uint8_t i = 0; i < cycles; i++) {
+    decodeInput();
+    if(refresh) refreshDisplay();
+    wait_ms(ms);
   }
 }
 
@@ -350,7 +387,8 @@ int main()
     pressures[i] = 0.;
   }
 
-  sample.attach(&tick, 2);
+  sample.attach(&tickSample, 2);
+  measure.attach(&tickMeasure, 3);
 
   wait_ms(100);
 
@@ -374,32 +412,22 @@ int main()
 
   while (1)
   {
-    readSensors();
-
-    wait_ms(10);
-
-    for (uint8_t i = 0; i < 50; i++) {
-      readInput();
-      refreshDisplay();
-
-      if ((((btn_click >> BTN_DN) & ((uint8_t) 0x01)) == 1) && (((btn_clicked >> BTN_DN) & ((uint8_t) 0x01)) == 0)) {
-        if (page < (uint8_t) 4) {
-          ++page;
-        }
-      }
-      if ((((btn_click >> BTN_UP) & ((uint8_t) 0x01)) == 1) && (((btn_clicked >> BTN_UP) & ((uint8_t) 0x01)) == 0)) {
-        if (page > (uint8_t) 0) {
-          --page;
-        }
-      }
-      wait_ms(100);
+    if(readyToMeasure) {
+      readSensors();
+      measure.attach(&tickMeasure, 3);
+      readyToMeasure = false;
     }
 
-    first = false;
+    wait_ms(10);
 
     if(readyToSample) {
       doSample();
       readyToSample = false;
     }
+
+    waitInput(1, 50, true);
+
+    first = false;
+
   }
 }
