@@ -5,7 +5,9 @@
 #include "constants.h"
 
 extern I2C* i2c;
+extern Serial* uart;
 
+void begin_uart(void);
 void begin_i2c(void);
 
 #endif // _PERIPHERALS_H_

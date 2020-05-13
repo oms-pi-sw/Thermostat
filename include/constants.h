@@ -5,7 +5,7 @@
 
 #define USE_OMS_SSD1306_DRIVER
 //#define USE_OMS_BME280_DRIVER
-#define USE_INPUT_INTERRUPTS
+//#define USE_INPUT_INTERRUPTS
 //#define USE_FULL_FONT
 #define USE_MEMSET
 
@@ -30,8 +30,14 @@
 
 #define BUTTON_NUMBER           6
 
-#define D_SDA PB_9
-#define D_SCL PB_8
+#define D_SDA                   PB_9
+#define D_SCL                   PB_8
+
+#define USBTX                   PA_2
+#define USBRX                   PA_3
+
+#define BAUD_RATE               115200
+#define I2C_FREQ                400000
 
 #ifndef USE_OMS_SSD1306_DRIVER
 #include <Adafruit_GFX.h>
