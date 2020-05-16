@@ -89,6 +89,20 @@ void decodeInput(void) {
   if ((((btn_click >> BTN_UP) & ((uint8_t) 0x01)) == 1) && (((btn_clicked >> BTN_UP) & ((uint8_t) 0x01)) == 0)) {
     btn_pressed[BTN_UP] = true;
   }
+
+  if ((((btn_click >> BTN_MENU) & ((uint8_t) 0x01)) == 1) && (((btn_clicked >> BTN_MENU) & ((uint8_t) 0x01)) == 0)) {
+    btn_pressed[BTN_MENU] = true;
+  }
+  if ((((btn_click >> BTN_OK) & ((uint8_t) 0x01)) == 1) && (((btn_clicked >> BTN_OK) & ((uint8_t) 0x01)) == 0)) {
+    btn_pressed[BTN_OK] = true;
+  }
+
+  if ((((btn_click >> BTN_PLUS) & ((uint8_t) 0x01)) == 1) && (((btn_clicked >> BTN_PLUS) & ((uint8_t) 0x01)) == 0)) {
+    btn_pressed[BTN_PLUS] = true;
+  }
+  if ((((btn_click >> BTN_MINS) & ((uint8_t) 0x01)) == 1) && (((btn_clicked >> BTN_MINS) & ((uint8_t) 0x01)) == 0)) {
+    btn_pressed[BTN_MINS] = true;
+  }
 }
 
 void waitInput(const uint8_t cycles, const uint16_t ms, bool refresh){

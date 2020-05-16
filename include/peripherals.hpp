@@ -3,6 +3,7 @@
 
 #include <mbed.h>
 #include "constants.h"
+#define BUFFER_CHUNK 1024
 
 extern I2C* i2c;
 extern Serial* uart;
@@ -10,4 +11,7 @@ extern Serial* uart;
 void begin_uart(void);
 void begin_i2c(void);
 
-#endif // _PERIPHERALS_H_
+void reset_buffers(void);
+char i_get_char(void);
+
+#endif  // _PERIPHERALS_H_
