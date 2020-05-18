@@ -13,7 +13,7 @@ float t_max = 0, t_min = 0, h_max = 0, h_min = 0, p_max = 0, p_min = 0;
 volatile bool readyToSample = false;
 volatile bool readyToMeasure = true;
 
-void begin_sensors(void) {
+bool begin_sensors(void) {
   bme280 = NULL;
   samples = 0;
   temperature = 0., humidity = 0.;
@@ -35,6 +35,8 @@ void begin_sensors(void) {
   wait_ms(2000);
   bme280->init();
   wait_ms(1000);
+
+  return (bme280 != NULL);
 }
 
 void reset_samples_arrays(void) {

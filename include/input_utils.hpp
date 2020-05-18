@@ -33,7 +33,7 @@ extern volatile bool btn_pressed[];
 extern uint8_t page;
 extern DISPLAY_TYPE *gOled2;
 
-void begin_input(void);
+bool begin_input(void);
 void readInput(void);
 void decodeInput(void);
 void waitInput(const uint8_t cycles, const uint16_t ms, bool refresh);

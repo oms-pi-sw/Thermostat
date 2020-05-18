@@ -16,11 +16,7 @@
 #define BLACK 0
 #define WHITE 1
 
-#ifndef USE_FULL_FONT
 #define OFFSET 32
-#else
-#define OFFSET 0
-#endif
 
 #define SSD1306_SETCONTRAST 0x81
 #define SSD1306_DISPLAYALLON_RESUME 0xA4
@@ -112,6 +108,8 @@ class SSD1306_OMS_lite {
 
     display();
   }
+
+  void drawBitmap(int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int16_t h, uint16_t color);
 
   void display(void);
   void setTextCursor(int16_t x, int16_t y) {

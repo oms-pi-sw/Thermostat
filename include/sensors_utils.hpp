@@ -20,7 +20,7 @@ extern float t_max, t_min, h_max, h_min, p_max, p_min;
 extern volatile bool readyToSample;
 extern volatile bool readyToMeasure;
 
-void begin_sensors(void);
+bool begin_sensors(void);
 void reset_samples_arrays(void);
 void tickSample(void);
 void tickMeasure(void);

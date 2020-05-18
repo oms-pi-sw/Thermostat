@@ -71,10 +71,10 @@ size_t SSD1306_OMS_lite::writeChar(uint8_t c) {
 
 void SSD1306_OMS_lite::drawChar(int16_t x, int16_t y, unsigned char c,
                                 uint16_t color, uint16_t bg) {
-  if ((x >= SCREEN_WIDTH) ||       // Clip right
-      (y >= SCREEN_HEIGHT) ||      // Clip bottom
-      ((x + 5 - 1) < 0) ||  // Clip left
-      ((y + 8 - 1) < 0)     // Clip top
+  if ((x >= SCREEN_WIDTH) ||   // Clip right
+      (y >= SCREEN_HEIGHT) ||  // Clip bottom
+      ((x + 5 - 1) < 0) ||     // Clip left
+      ((y + 8 - 1) < 0)        // Clip top
   )
     return;
 
@@ -105,6 +105,15 @@ void SSD1306_OMS_lite::drawPixel(int16_t x, int16_t y, uint16_t color) {
     buffer[x + (y / 8) * SCREEN_WIDTH] |= _BV((y % 8));
   else  // else black
     buffer[x + (y / 8) * SCREEN_WIDTH] &= ~_BV((y % 8));
+}
+
+void SSD1306_OMS_lite::drawBitmap(int16_t x, int16_t y, const uint8_t *bitmap,
+                                  int16_t w, int16_t h, uint16_t color) {
+  for (int16_t j = 0; j < h; j++) {
+    for (int16_t i = 0; i < w; i++) {
+      if (bitmap[i + (j / 8) * w] & _BV(j % 8)) drawPixel(x + i, y + j, color);
+    }
+  }
 }
 
 void SSD1306_OMS_lite::drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1,

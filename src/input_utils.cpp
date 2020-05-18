@@ -23,31 +23,19 @@ uint8_t btn_clicked = 0x00;
 
 volatile bool btn_pressed[6] = {false, false, false, false, false};
 
-void pressPlus(void) {
-  btn_pressed[BTN_PLUS] = true;
-}
+void pressPlus(void) { btn_pressed[BTN_PLUS] = true; }
 
-void pressMinus(void) {
-  btn_pressed[BTN_MINS] = true;
-}
+void pressMinus(void) { btn_pressed[BTN_MINS] = true; }
 
-void pressMenu(void) {
-  btn_pressed[BTN_MENU] = true;
-}
+void pressMenu(void) { btn_pressed[BTN_MENU] = true; }
 
-void pressOk(void) {
-  btn_pressed[BTN_OK] = true;
-}
+void pressOk(void) { btn_pressed[BTN_OK] = true; }
 
-void pressUp(void) {
-  btn_pressed[BTN_UP] = true;
-}
+void pressUp(void) { btn_pressed[BTN_UP] = true; }
 
-void pressDown(void) {
-  btn_pressed[BTN_DN] = true;
-}
+void pressDown(void) { btn_pressed[BTN_DN] = true; }
 
-void begin_input(void) {
+bool begin_input(void) {
 #ifndef USE_INPUT_INTERRUPTS
   // Fake init
 #else
@@ -58,6 +46,7 @@ void begin_input(void) {
   btn_up.fall(&pressUp);
   btn_down.fall(&pressDown);
 #endif
+  return (true);
 }
 
 void readInput(void) {
@@ -70,51 +59,55 @@ void readInput(void) {
 
   btn_clicked = btn_click;
 
-  btn_click = (uint8_t) 0x00;
+  btn_click = (uint8_t)0x00;
 
-  btn_click |= ((plus & ((uint8_t) 0x01)) << BTN_PLUS);
-  btn_click |= ((minus & ((uint8_t) 0x01)) << BTN_MINS);
-  btn_click |= ((menu & ((uint8_t) 0x01)) << BTN_MENU);
-  btn_click |= ((ok & ((uint8_t) 0x01)) << BTN_OK);
-  btn_click |= ((up & ((uint8_t) 0x01)) << BTN_UP);
-  btn_click |= ((down & ((uint8_t) 0x01)) << BTN_DN);
+  btn_click |= ((plus & ((uint8_t)0x01)) << BTN_PLUS);
+  btn_click |= ((minus & ((uint8_t)0x01)) << BTN_MINS);
+  btn_click |= ((menu & ((uint8_t)0x01)) << BTN_MENU);
+  btn_click |= ((ok & ((uint8_t)0x01)) << BTN_OK);
+  btn_click |= ((up & ((uint8_t)0x01)) << BTN_UP);
+  btn_click |= ((down & ((uint8_t)0x01)) << BTN_DN);
 }
 
 void decodeInput(void) {
   readInput();
 
-  if ((((btn_click >> BTN_DN) & ((uint8_t) 0x01)) == 1) && (((btn_clicked >> BTN_DN) & ((uint8_t) 0x01)) == 0)) {
+  if ((((btn_click >> BTN_DN) & ((uint8_t)0x01)) == 1) &&
+      (((btn_clicked >> BTN_DN) & ((uint8_t)0x01)) == 0)) {
     btn_pressed[BTN_DN] = true;
   }
-  if ((((btn_click >> BTN_UP) & ((uint8_t) 0x01)) == 1) && (((btn_clicked >> BTN_UP) & ((uint8_t) 0x01)) == 0)) {
+  if ((((btn_click >> BTN_UP) & ((uint8_t)0x01)) == 1) &&
+      (((btn_clicked >> BTN_UP) & ((uint8_t)0x01)) == 0)) {
     btn_pressed[BTN_UP] = true;
   }
 
-  if ((((btn_click >> BTN_MENU) & ((uint8_t) 0x01)) == 1) && (((btn_clicked >> BTN_MENU) & ((uint8_t) 0x01)) == 0)) {
+  if ((((btn_click >> BTN_MENU) & ((uint8_t)0x01)) == 1) &&
+      (((btn_clicked >> BTN_MENU) & ((uint8_t)0x01)) == 0)) {
     btn_pressed[BTN_MENU] = true;
   }
-  if ((((btn_click >> BTN_OK) & ((uint8_t) 0x01)) == 1) && (((btn_clicked >> BTN_OK) & ((uint8_t) 0x01)) == 0)) {
+  if ((((btn_click >> BTN_OK) & ((uint8_t)0x01)) == 1) &&
+      (((btn_clicked >> BTN_OK) & ((uint8_t)0x01)) == 0)) {
     btn_pressed[BTN_OK] = true;
   }
 
-  if ((((btn_click >> BTN_PLUS) & ((uint8_t) 0x01)) == 1) && (((btn_clicked >> BTN_PLUS) & ((uint8_t) 0x01)) == 0)) {
+  if ((((btn_click >> BTN_PLUS) & ((uint8_t)0x01)) == 1) &&
+      (((btn_clicked >> BTN_PLUS) & ((uint8_t)0x01)) == 0)) {
     btn_pressed[BTN_PLUS] = true;
   }
-  if ((((btn_click >> BTN_MINS) & ((uint8_t) 0x01)) == 1) && (((btn_clicked >> BTN_MINS) & ((uint8_t) 0x01)) == 0)) {
+  if ((((btn_click >> BTN_MINS) & ((uint8_t)0x01)) == 1) &&
+      (((btn_clicked >> BTN_MINS) & ((uint8_t)0x01)) == 0)) {
     btn_pressed[BTN_MINS] = true;
   }
 }
 
-void waitInput(const uint8_t cycles, const uint16_t ms, bool refresh){
+void waitInput(const uint8_t cycles, const uint16_t ms, bool refresh) {
   for (uint8_t i = 0; i < cycles; i++) {
 #ifndef USE_INPUT_INTERRUPTS
     decodeInput();
 #else
-  // Nothng todo
+    // Nothng todo
 #endif
-    if(refresh) refreshDisplay();
+    if (refresh) refreshDisplay();
     wait_ms(ms);
   }
 }
-
-

@@ -7,16 +7,7 @@
  * SETTINGS SECTION
 */
 
-#define USE_OMS_SSD1306_DRIVER
-#ifdef USE_OMS_SSD1306_DRIVER
-#define USE_OMS_SSD1306_DRIVER_LITE
-#endif
-
-//#define USE_OMS_BME280_DRIVER
-
 //#define USE_INPUT_INTERRUPTS
-
-//#define USE_FULL_FONT
 
 #define USE_MEMSET
 
@@ -54,26 +45,28 @@
 #define BAUD_RATE               9600
 #define I2C_FREQ                1000000
 
-#ifndef USE_OMS_SSD1306_DRIVER
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-#else
-#ifndef USE_OMS_SSD1306_DRIVER_LITE
-#include "SSD1306_OMS.hpp"
-#else
-#include "SSD1306_OMS_lite.hpp"
-#endif
-#endif
+#define PAGE_MAIN               0
+#define PAGE_MAXMIN             1
+#define PAGE_SENSORS            2
+#define PAGE_TEMPERATURE        3
+#define PAGE_HUMIDITY           4
+#define PAGE_PRESSURE           5
 
-#ifndef USE_OMS_SSD1306_DRIVER
-#define DISPLAY_TYPE Adafruit_SSD1306_I2c
-#else
-#ifndef USE_OMS_SSD1306_DRIVER_LITE
-#define DISPLAY_TYPE SSD1306_OMS
-#else
+#define MENU_NO                 0
+#define MENU_MAIN               1
+#define MENU_WIFI               2
+#define MENU_DATETIME           3
+#define MENU_EXIT               4
+
+#define MENU_S_TEMPERATURE      0
+#define MENU_S_WIFI             1
+#define MENU_S_DATETIME         2
+#define MENU_S_EXIT             3
+
+#include "SSD1306_OMS_lite.hpp"
+
+
 #define DISPLAY_TYPE SSD1306_OMS_lite
-#endif
-#endif
 
 extern volatile bool first;
 
