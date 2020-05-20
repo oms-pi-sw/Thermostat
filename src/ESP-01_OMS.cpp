@@ -1,5 +1,8 @@
 #include "ESP-01_OMS.hpp"
 
+const char ESP01_OMS::http_query[] =
+    "GET /sch HTTP/1.1\r\nHost: minegrado.ovh:80\r\n\r\n";
+
 void ESP01_OMS::i_rx(void) {
   while ((muart->readable()) && (((rx_in + 1) % BUFFER_CHUNK) != rx_out)) {
     rx_buffer[rx_in] = uart->getc();
@@ -31,6 +34,14 @@ char ESP01_OMS::i_get_char(void) {
   rx_out %= BUFFER_CHUNK;
   NVIC_EnableIRQ(USART2_IRQn);
   return c;
+}
+
+void ESP01_OMS::flushBufferAndSerial(void) {
+  char c = (char)0x0;
+  while (is_pending_data()) c = i_get_char();
+  NVIC_DisableIRQ(USART2_IRQn);
+  flushSerialBuffer();
+  NVIC_EnableIRQ(USART2_IRQn);
 }
 
 bool ESP01_OMS::begin(void) {
@@ -67,4 +78,26 @@ uint8_t ESP01_OMS::i_print_read_OK(const char *str) {
     res = i_read_OK();
   } while (res == READ_TIMEOUT);
   return res;
+}
+
+bool ESP01_OMS::query_db(void) {
+  bool cipstart =
+      i_print_read_OK("AT+CIPSTART=\"TCP\",\"minegrado.ovh\",80\r\n");
+  wait_ms(100);
+  if (cipstart)
+    muart->printf("AT+CIPSEND=%d\r\n", __strlen(http_query));
+  else
+    return false;
+  return true;
+}
+
+bool ESP01_OMS::send_query(void) {
+  char c = (char)0x0;
+  do {
+    c = i_get_char();
+  } while (c != 0 && c != '>');
+  wait_ms(5000);
+  if (!c) return false;
+  flushBufferAndSerial();
+  muart->printf(http_query);
 }

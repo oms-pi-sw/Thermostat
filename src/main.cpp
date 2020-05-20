@@ -45,90 +45,18 @@ int main() {
     gOled2->printString("Init WIFI...  Done.");
     gOled2->display();
   }
+  begin_schedule();
 
-  sample.attach(&tickSample, 1);
-  measure.attach(&tickMeasure, 3);
+  sample.attach(&tickSample, 60);
+  measure.attach(&tickMeasure, 5);
 
-/*
-    gOled2->clearDisplay();
-    gOled2->setTextCursor(0, 0);
-    uart->printf("AT+RST\r\n");
-    gOled2->printString("RESET\n");
-    gOled2->display();
-    wait_ms(2000);
-    reset_buffers();
-    wait_ms(100);
-
-    gOled2->clearDisplay();
-    gOled2->setTextCursor(0, 0);
-    uart->printf("AT+CWMODE?\r\n");
-    wait_ms(100);
-    char c = 0;
-    while ((c = i_get_char()) != 0) {
-      gOled2->writeChar(c);
-      gOled2->display();
-    };
-    wait_ms(1000);
-
-    gOled2->clearDisplay();
-    gOled2->setTextCursor(0, 0);
-    uart->printf("AT+CWJAP=\"NETGEAR_7000\",\"SpegniQuellaLuce\"\r\n");
-    wait_ms(5000);
-    c = 0;
-    while ((c = i_get_char()) != 0) {
-      gOled2->writeChar(c);
-      gOled2->display();
-    };
-    wait_ms(2000);
-
-    gOled2->clearDisplay();
-    gOled2->setTextCursor(0, 0);
-    uart->printf("AT+CIFSR\r\n");
-    wait_ms(500);
-    c = 0;
-    while ((c = i_get_char()) != 0) {
-      gOled2->writeChar(c);
-      gOled2->display();
-    };
-    wait_ms(500);
-
-    gOled2->clearDisplay();
-    gOled2->setTextCursor(0, 0);
-    uart->printf("AT+CIPSTART=\"TCP\",\"minegrado.ovh\",80\r\n");
-    wait_ms(1000);
-    c = 0;
-    while ((c = i_get_char()) != 0) {
-      gOled2->writeChar(c);
-      gOled2->display();
-    };
-    wait_ms(500);
-
-    gOled2->clearDisplay();
-    gOled2->setTextCursor(0, 0);
-    char http_req[] = "GET /test HTTP/1.1\r\nHost: minegrado.ovh:80\r\n\r\n";
-    uart->printf("AT+CIPSEND=%d\r\n", __strlen(http_req));
-    wait_ms(100);
-    uart->printf(http_req);
-    wait_ms(5000);
-    c = 0;
-    while ((c = i_get_char()) != 0) {
-      gOled2->writeChar(c);
-      gOled2->display();
-    };
-    wait_ms(50000);
-
-    gOled2->clearDisplay();
-    gOled2->setTextCursor(0, 0);
-    gOled2->printString("CONNECTED\n");
-    gOled2->display();
-*/
-
-    wait_ms(1000);
+  wait_ms(1000);
+  start_sync();
 
   while (1) {
     if (readyToMeasure) {
       readSensors();
-      measure.attach(&tickMeasure, 3);
+      measure.attach(&tickMeasure, 15);
       readyToMeasure = false;
     }
     wait_ms(10);
@@ -160,6 +88,8 @@ int main() {
         menu = MENU_NO;
       }
     }
+
+    query_fsm();
 
     first = false;
   }

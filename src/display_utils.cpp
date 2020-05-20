@@ -1,5 +1,7 @@
 #include "display_utils.hpp"
 
+#include "wifi_utils.hpp"
+
 DISPLAY_TYPE *gOled2 = NULL;
 
 const uint8_t fire[] = {
@@ -93,12 +95,16 @@ void displayGraph(const volatile float *sarray) {
 void page0(void) {
   printTitle("        MAIN         \n");
 
-  gOled2->printString("Temperatura:\n\n");
+  gOled2->printString("Temperatura:\n");
   gOled2->printFloat(temperature);
   gOled2->printString(" C\n\n");
-  gOled2->printString("Impostata:\n\n");
+  /*gOled2->printString("Impostata:\n");
   gOled2->printFloat(temperature);
-  gOled2->printString(" C\n\n");
+  gOled2->printString(" C");*/
+  gOled2->printString("QueryState: ");
+  gOled2->printInt(queryState);
+  gOled2->printString("\r\n");
+  gOled2->printString(schedule);
   gOled2->drawBitmap(100, 16, fire, 21, 30, WHITE);
   gOled2->display();
 }
