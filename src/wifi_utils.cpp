@@ -45,39 +45,53 @@ bool query_linked(void) {
   queryExecute = false;
 
   char c = (char)0x00;
-  bool f_OK = false, f_Linked = false;
-  uint8_t i = 0;
+  bool found = false, f_OK = false, f_Linked = false, f_CONNECT = false;
+  uint8_t i = 0, j = 0;
   char buff_OK[] = "OK";
   char buff_Linked[] = "Linked";
+  char buff_CONNECT[] = "CONNECT";
 
   do {
     c = wifi->i_get_char();
+    if (!found) {
+      if (!f_OK) {
+        if (c == buff_OK[i]) {
+          ++i;
+        } else {
+          i = 0;
+        }
+        if (i == __strlen(buff_OK)) {
+          f_OK = true;
+          i = 0;
+        }
+      } else if (f_OK && !f_Linked) {
+        if (c == buff_Linked[i]) {
+          ++i;
+        } else {
+          i = 0;
+        }
+        if (i == __strlen(buff_Linked)) {
+          f_Linked = true;
+          i = 0;
+        }
+      }
 
-    if (!f_OK) {
-      if (c == buff_OK[i]) {
-        ++i;
-      } else {
-        i = 0;
-      }
-      if (i == __strlen(buff_OK)) {
-        f_OK = true;
-        i = 0;
-      }
-    } else if (!f_Linked) {
-      if (c == buff_Linked[i]) {
-        ++i;
-      } else {
-        i = 0;
-      }
-      if (i == __strlen(buff_Linked)) {
-        f_Linked = true;
-        i = 0;
+      if (!f_CONNECT) {
+        if (c == buff_CONNECT[j])
+          ++j;
+        else
+          j = 0;
+        if (j == __strlen(buff_CONNECT)) f_CONNECT = true;
       }
     }
-  } while (c);
+    found = ((f_OK && f_Linked) || (f_CONNECT));
+  } while (wifi->is_pending_data());
   querySucceded = (f_OK && f_Linked);
   if (querySucceded) {
     queryState = STATE_SEND;
+    queryTimeout.attach(&query_state, 0.5);
+  } else {
+    queryState = STATE_START;
     queryTimeout.attach(&query_state, 0.5);
   }
   return (querySucceded);

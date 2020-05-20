@@ -41,13 +41,15 @@ int main() {
     gOled2->printString("Init BME...   Done.\n");
     gOled2->display();
   }
+  gOled2->printString("Init WIFI... ");
+  gOled2->display();
   if (begin_wifi()) {
-    gOled2->printString("Init WIFI...  Done.");
+    gOled2->printString("Done.");
     gOled2->display();
   }
   begin_schedule();
 
-  sample.attach(&tickSample, 60);
+  sample.attach(&tickSample, SAMPLE_T);
   measure.attach(&tickMeasure, 5);
 
   wait_ms(1000);
@@ -56,7 +58,7 @@ int main() {
   while (1) {
     if (readyToMeasure) {
       readSensors();
-      measure.attach(&tickMeasure, 15);
+      measure.attach(&tickMeasure, MEASURE_T);
       readyToMeasure = false;
     }
     wait_ms(10);

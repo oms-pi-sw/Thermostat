@@ -63,6 +63,9 @@
 #define MENU_S_DATETIME         2
 #define MENU_S_EXIT             3
 
+#define SAMPLE_T                (60 * 5)
+#define MEASURE_T               (60 / 4)
+
 #include "SSD1306_OMS_lite.hpp"
 
 
