@@ -41,7 +41,7 @@ int main() {
     gOled2->printString("Init BME...   Done.\n");
     gOled2->display();
   }
-  gOled2->printString("Init WIFI...    ");
+  gOled2->printString("Init WIFI...  ");
   gOled2->display();
   if (begin_wifi()) {
     gOled2->printString("Done.");

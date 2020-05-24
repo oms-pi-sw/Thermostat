@@ -74,7 +74,7 @@ uint8_t ESP01_OMS::i_read_OK(void) {
 uint8_t ESP01_OMS::i_print_read_OK(const char *str) {
   uint8_t res;
   do {
-    muart->printf(str);
+    print(str);
     res = i_read_OK();
   } while (res == READ_TIMEOUT);
   return res;
@@ -84,9 +84,12 @@ bool ESP01_OMS::query_db(void) {
   bool cipstart =
       i_print_read_OK("AT+CIPSTART=\"TCP\",\"minegrado.ovh\",80\r\n");
   wait_ms(100);
-  if (cipstart)
-    muart->printf("AT+CIPSEND=%d\r\n", __strlen(http_query));
-  else
+  if (cipstart) {
+    char buff[30];
+    memset(buff, (char)0x0, 30 * sizeof(char));
+    sprintf(buff, "AT+CIPSEND=%d\r\n", __strlen(http_query));
+    print(buff);
+  } else
     return false;
   return true;
 }
@@ -99,5 +102,16 @@ bool ESP01_OMS::send_query(void) {
   wait_ms(5000);
   if (!c) return false;
   flushBufferAndSerial();
-  muart->printf(http_query);
+  print(http_query);
+  return (true);
+}
+
+uint32_t ESP01_OMS::print(const char *string) {
+  uint32_t i = 0;
+  while (string[i] != (char)0x0) {
+    NVIC_DisableIRQ(USART2_IRQn);
+    muart->putc(string[i++]);
+    NVIC_EnableIRQ(USART2_IRQn);
+  }
+  return (i);
 }

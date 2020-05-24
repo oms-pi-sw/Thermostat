@@ -29,7 +29,7 @@ class ESP01_OMS {
     wait_ms(100);
     connected = false;
     this->iReadF = 1;
-    muart->printf("AT+RST\r\n");
+    print("AT+RST\r\n");
     wait_ms(3000);
     reset_buffers();
     flushSerialBuffer();
@@ -42,6 +42,7 @@ class ESP01_OMS {
   bool send_query(void);
   void flushBufferAndSerial(void);
   bool is_pending_data(void) { return (rx_in != rx_out); }
+  uint32_t print(const char *string);
 
  private:
   Serial *muart;

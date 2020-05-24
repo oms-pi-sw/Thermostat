@@ -35,8 +35,7 @@ bool query_flush(void) {
 }
 bool query_start(void) {
   queryExecute = false;
-  wifi->get_serial_chn()->printf(
-      "AT+CIPSTART=\"TCP\",\"minegrado.ovh\",80\r\n");
+  wifi->print("AT+CIPSTART=\"TCP\",\"minegrado.ovh\",80\r\n");
   queryState = STATE_LINKED;
   queryTimeout.attach(&query_state, 3);
   return (true);
@@ -86,7 +85,7 @@ bool query_linked(void) {
     }
     found = ((f_OK && f_Linked) || (f_CONNECT));
   } while (wifi->is_pending_data());
-  querySucceded = (f_OK && f_Linked && f_CONNECT);
+  querySucceded = ((f_OK && f_Linked) || (f_CONNECT));
   if (querySucceded) {
     queryState = STATE_SEND;
     queryTimeout.attach(&query_state, 0.5);
@@ -98,8 +97,10 @@ bool query_linked(void) {
 }
 bool query_send(void) {
   queryExecute = false;
-  wifi->get_serial_chn()->printf("AT+CIPSEND=%d\r\n",
-                                 __strlen(ESP01_OMS::http_query));
+  char buff[30];
+  memset(buff, (char)0x0, 30 * sizeof(char));
+  sprintf(buff, "AT+CIPSEND=%d\r\n", __strlen(ESP01_OMS::http_query));
+  wifi->print(buff);
   queryState = STATE_HTTP;
   queryTimeout.attach(&query_state, 3);
   querySucceded = true;
@@ -113,7 +114,7 @@ bool query_http(void) {
     c = wifi->i_get_char();
   } while (c != 0 && c != '>');
 
-  wifi->get_serial_chn()->printf(ESP01_OMS::http_query);
+  wifi->print(ESP01_OMS::http_query);
   queryState = STATE_READ;
   queryTimeout.attach(&query_state, 3);
   querySucceded = true;
