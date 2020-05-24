@@ -86,12 +86,12 @@ bool query_linked(void) {
     }
     found = ((f_OK && f_Linked) || (f_CONNECT));
   } while (wifi->is_pending_data());
-  querySucceded = (f_OK && f_Linked);
+  querySucceded = (f_OK && f_Linked && f_CONNECT);
   if (querySucceded) {
     queryState = STATE_SEND;
     queryTimeout.attach(&query_state, 0.5);
   } else {
-    queryState = STATE_START;
+    queryState = STATE_FLUSH;
     queryTimeout.attach(&query_state, 0.5);
   }
   return (querySucceded);
@@ -102,7 +102,8 @@ bool query_send(void) {
                                  __strlen(ESP01_OMS::http_query));
   queryState = STATE_HTTP;
   queryTimeout.attach(&query_state, 3);
-  return (true);
+  querySucceded = true;
+  return (querySucceded);
 }
 bool query_http(void) {
   queryExecute = false;
@@ -115,7 +116,8 @@ bool query_http(void) {
   wifi->get_serial_chn()->printf(ESP01_OMS::http_query);
   queryState = STATE_READ;
   queryTimeout.attach(&query_state, 3);
-  return (true);
+  querySucceded = true;
+  return (querySucceded);
 }
 bool query_read(void) {
   queryExecute = false;
