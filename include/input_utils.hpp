@@ -2,40 +2,60 @@
 #define _INPUT_UTILS_H_
 
 #include <mbed.h>
+
 #include "display_utils.hpp"
 
-extern DigitalOut statusLed;
+class InputUtils {
+ public:
+  InputUtils(DisplayUtils* display);
+  virtual ~InputUtils();
+  bool start(void);
+  void cycle(void);
+
+ protected:
+ private:
+  void begin(void);
+  void pressPlus(void);
+  void pressMinus(void);
+  void pressMenu(void);
+  void pressOk(void);
+  void pressUp(void);
+  void pressDown(void);
+
+  void readInput(void);
+  void decodeInput(void);
+  void waitInput(const uint8_t cycles, const uint16_t ms, bool refresh);
+
+  enum button {
+    BTN_PLUS,
+    BTN_MINS,
+    BTN_MENU,
+    BTN_OK,
+    BTN_UP,
+    BTN_DN
+  };
+
+  volatile bool btn_pressed[6] = {false, false, false, false, false};
+  uint8_t btn_click = 0x00;
+  uint8_t btn_clicked = 0x00;
+
+  DisplayUtils* display;
 
 #ifndef USE_INPUT_INTERRUPTS
-extern DigitalIn btn_plus;
-extern DigitalIn btn_minus;
-extern DigitalIn btn_menu;
-extern DigitalIn btn_ok;
-extern DigitalIn btn_up;
-extern DigitalIn btn_down;
+  DigitalIn btn_plus;
+  DigitalIn btn_minus;
+  DigitalIn btn_menu;
+  DigitalIn btn_ok;
+  DigitalIn btn_up;
+  DigitalIn btn_down;
 #else
-extern InterruptIn btn_plus;
-extern InterruptIn btn_minus;
-extern InterruptIn btn_menu;
-extern InterruptIn btn_ok;
-extern InterruptIn btn_up;
-extern InterruptIn btn_down;
+  InterruptIn btn_plus;
+  InterruptIn btn_minus;
+  InterruptIn btn_menu;
+  InterruptIn btn_ok;
+  InterruptIn btn_up;
+  InterruptIn btn_down;
 #endif
-
-enum button {
-  BTN_PLUS, BTN_MINS, BTN_MENU, BTN_OK, BTN_UP, BTN_DN
 };
-extern uint8_t btn_click;
-extern uint8_t btn_clicked;
 
-extern volatile bool btn_pressed[];
-
-extern uint8_t page;
-extern DISPLAY_TYPE *gOled2;
-
-bool begin_input(void);
-void readInput(void);
-void decodeInput(void);
-void waitInput(const uint8_t cycles, const uint16_t ms, bool refresh);
-
-#endif // _INPUT_UTILS_H_
+#endif  // _INPUT_UTILS_H_

@@ -257,7 +257,7 @@ BME280::~BME280()
 }
 
 void BME280::i2c_readRegs(int addr, uint8_t * data, int len) {
-    char t[1] = {addr} ;
+    char t[1] = {(char) addr} ;
     m_i2c->write(m_addr, t, 1, true) ;
     m_i2c->read(m_addr, (char*)data, len) ;
 }

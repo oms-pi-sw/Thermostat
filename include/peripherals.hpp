@@ -5,13 +5,22 @@
 
 #include "constants.h"
 
-extern I2C* i2c;
-extern Serial* uart;
+class PeripheralsUtils {
+ public:
+  PeripheralsUtils();
+  virtual ~PeripheralsUtils();
+  bool start(void);
+  I2C* getI2C(void) const { return this->i2c; };
+  Serial* getUART(void) const { return this->uart; };
 
-bool begin_uart(void);
-bool begin_i2c(void);
+ protected:
+ private:
+  void begin(void);
+  void begin_uart(void);
+  void begin_i2c(void);
 
-void reset_buffers(void);
-char i_get_char(void);
+  I2C* i2c;
+  Serial* uart;
+};
 
 #endif  // _PERIPHERALS_H_

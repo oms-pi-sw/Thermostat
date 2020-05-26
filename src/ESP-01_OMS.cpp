@@ -1,11 +1,10 @@
 #include "ESP-01_OMS.hpp"
 
-const char ESP01_OMS::http_query[] =
-    "GET /sch HTTP/1.1\r\nHost: minegrado.ovh:80\r\n\r\n";
+const char ESP01_OMS::http_query[] = "GET /sch HTTP/1.1\r\nHost: minegrado.ovh:80\r\n\r\n";
 
 void ESP01_OMS::i_rx(void) {
   while ((muart->readable()) && (((rx_in + 1) % BUFFER_CHUNK) != rx_out)) {
-    rx_buffer[rx_in] = uart->getc();
+    rx_buffer[rx_in] = muart->getc();
     rx_in = (rx_in + 1) % BUFFER_CHUNK;
   }
   return;
@@ -87,7 +86,7 @@ bool ESP01_OMS::query_db(void) {
   if (cipstart) {
     char buff[30];
     memset(buff, (char)0x0, 30 * sizeof(char));
-    sprintf(buff, "AT+CIPSEND=%d\r\n", __strlen(http_query));
+    sprintf(buff, "AT+CIPSEND=%d\r\n", Utils::__strlen(http_query));
     print(buff);
   } else
     return false;

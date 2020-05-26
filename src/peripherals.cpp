@@ -1,18 +1,31 @@
 #include "peripherals.hpp"
 
-I2C* i2c = NULL;
-Serial* uart = NULL;
+PeripheralsUtils::PeripheralsUtils() {
+  this->uart = new Serial(USBTX, USBRX);
+  this->i2c = new I2C(D_SDA, D_SCL);
 
-bool begin_uart(void) {
-  uart = new Serial(USBTX, USBRX);
-  uart->baud(BAUD_RATE);
-
-  return (uart != NULL);
+  begin();
 }
 
-bool begin_i2c(void) {
-  i2c = new I2C(D_SDA, D_SCL);
-  i2c->frequency(I2C_FREQ);
+PeripheralsUtils::~PeripheralsUtils() {
+  delete uart;
+  delete i2c;
+}
 
-  return (i2c != NULL);
+void PeripheralsUtils::begin(void) {
+  begin_i2c();
+  begin_uart();
+}
+
+bool PeripheralsUtils::start(void) {
+  return (uart != NULL && i2c != NULL);
+}
+
+
+void PeripheralsUtils::begin_uart(void) {
+  uart->baud(BAUD_RATE);
+}
+
+void PeripheralsUtils::begin_i2c(void) {
+  i2c->frequency(I2C_FREQ);
 }

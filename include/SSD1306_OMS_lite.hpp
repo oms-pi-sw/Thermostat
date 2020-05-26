@@ -4,7 +4,6 @@
 #include <mbed.h>
 
 #include "constants.h"
-#include "font_oms.h"
 #include "utils.hpp"
 
 #define BUFFER_LEN (SCREEN_WIDTH * SCREEN_HEIGHT / 8)
@@ -116,6 +115,11 @@ class SSD1306_OMS_lite {
     cursor_x = x;
     cursor_y = y;
   };
+  void reset(bool flush = false) {
+    this->clearDisplay();
+    this->setTextCursor(0, 0);
+    if (flush) this->display();
+  }
   void clearDisplay(void);
   void drawPixel(int16_t x, int16_t y, uint16_t color);
   void drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
@@ -148,6 +152,7 @@ class SSD1306_OMS_lite {
   void data(uint8_t c);
   void drawChar(int16_t x, int16_t y, unsigned char c, uint16_t color,
                 uint16_t bg);
+  static const unsigned char font[];
 };
 
 #endif  // _SSD1306_OMS_lite_H_

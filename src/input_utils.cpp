@@ -1,41 +1,35 @@
 #include "input_utils.hpp"
 
-DigitalOut statusLed(PC_13);
-
+InputUtils::InputUtils(DisplayUtils* display) :
 #ifndef USE_INPUT_INTERRUPTS
-DigitalIn btn_plus(PA_0);
-DigitalIn btn_minus(PA_1);
-DigitalIn btn_menu(PA_6);
-DigitalIn btn_ok(PA_4);
-DigitalIn btn_up(PA_5);
-DigitalIn btn_down(PA_7);
+                                                btn_plus(PA_0),
+                                                btn_minus(PA_1),
+                                                btn_menu(PA_6),
+                                                btn_ok(PA_4),
+                                                btn_up(PA_5),
+                                                btn_down(PA_7)
 #else
-InterruptIn btn_plus(PA_0);
-InterruptIn btn_minus(PA_1);
-InterruptIn btn_menu(PA_6);
-InterruptIn btn_ok(PA_4);
-InterruptIn btn_up(PA_5);
-InterruptIn btn_down(PA_7);
+                                                btn_plus(PA_0),
+                                                btn_minus(PA_1),
+                                                btn_menu(PA_6),
+                                                btn_ok(PA_4),
+                                                btn_up(PA_5),
+                                                btn_down(PA_7)
 #endif
+{
+  this->display = display;
 
-uint8_t btn_click = 0x00;
-uint8_t btn_clicked = 0x00;
+  btn_click = 0x00;
+  btn_clicked = 0x00;
 
-volatile bool btn_pressed[6] = {false, false, false, false, false};
+  begin();
+}
 
-void pressPlus(void) { btn_pressed[BTN_PLUS] = true; }
+InputUtils::~InputUtils() {}
 
-void pressMinus(void) { btn_pressed[BTN_MINS] = true; }
+void InputUtils::begin(void) {}
 
-void pressMenu(void) { btn_pressed[BTN_MENU] = true; }
-
-void pressOk(void) { btn_pressed[BTN_OK] = true; }
-
-void pressUp(void) { btn_pressed[BTN_UP] = true; }
-
-void pressDown(void) { btn_pressed[BTN_DN] = true; }
-
-bool begin_input(void) {
+bool InputUtils::start(void) {
 #ifndef USE_INPUT_INTERRUPTS
   // Fake init
 #else
@@ -49,7 +43,42 @@ bool begin_input(void) {
   return (true);
 }
 
-void readInput(void) {
+void InputUtils::cycle(void) {
+  waitInput(CYCLES, WAIT_MS, false);
+
+  if (btn_pressed[BTN_DN]) {
+    btn_pressed[BTN_DN] = false;
+    display->incPage();
+  }
+  if (btn_pressed[BTN_UP]) {
+    btn_pressed[BTN_UP] = false;
+    display->degPage();
+  }
+  if (btn_pressed[BTN_MENU]) {
+    btn_pressed[BTN_MENU] = false;
+    display->gotoMenuHome();
+  }
+  if (btn_pressed[BTN_OK]) {
+    btn_pressed[BTN_OK] = false;
+    if (display->getMenu() == MENU_MAIN && display->getPage() == MENU_S_EXIT) {
+      display->gotoHome();
+    }
+  }
+}
+
+void InputUtils::pressPlus(void) { btn_pressed[BTN_PLUS] = true; }
+
+void InputUtils::pressMinus(void) { btn_pressed[BTN_MINS] = true; }
+
+void InputUtils::pressMenu(void) { btn_pressed[BTN_MENU] = true; }
+
+void InputUtils::pressOk(void) { btn_pressed[BTN_OK] = true; }
+
+void InputUtils::pressUp(void) { btn_pressed[BTN_UP] = true; }
+
+void InputUtils::pressDown(void) { btn_pressed[BTN_DN] = true; }
+
+void InputUtils::readInput(void) {
   bool plus = btn_plus;
   bool minus = btn_minus;
   bool menu = btn_menu;
@@ -69,7 +98,7 @@ void readInput(void) {
   btn_click |= ((down & ((uint8_t)0x01)) << BTN_DN);
 }
 
-void decodeInput(void) {
+void InputUtils::decodeInput(void) {
   readInput();
 
   if ((((btn_click >> BTN_DN) & ((uint8_t)0x01)) == 1) &&
@@ -100,14 +129,15 @@ void decodeInput(void) {
   }
 }
 
-void waitInput(const uint8_t cycles, const uint16_t ms, bool refresh) {
+void InputUtils::waitInput(const uint8_t cycles, const uint16_t ms, bool refresh) {
   for (uint8_t i = 0; i < cycles; i++) {
 #ifndef USE_INPUT_INTERRUPTS
     decodeInput();
 #else
     // Nothng todo
 #endif
-    if (refresh) refreshDisplay();
+    if (refresh) display->cycle();
     wait_ms(ms);
   }
 }
+

@@ -3,7 +3,7 @@
 
 #include <mbed.h>
 
-#include "peripherals.hpp"
+#include "utils.hpp"
 
 #define READ_TIMEOUT 0
 #define READ_OK 1
